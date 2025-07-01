@@ -1,3 +1,6 @@
+#include <QRegularExpressionValidator>
+#include <QRegularExpression>
+
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
@@ -21,6 +24,18 @@ MainWindow::MainWindow(QWidget *parent)
     initScriptComboBox();
     initCategoriesComboBox();
     initDecompositionsComboBox();
+    initMSBFilter();
+
+    // Включаем выделение строк
+    ui->tableCharView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableCharView->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // В классе MainWindow
+    connect(ui->tableCharView, &QTableView::clicked, [this](const QModelIndex &index) {
+        QChar ch = m_fontCharacterModel->characterAt(index);
+        ui->glyphWidget->setGlyph(ch, m_fontCharacterModel->font());
+        qDebug() << "Character " << ch;
+    });
 }
 
 MainWindow::~MainWindow()
@@ -56,7 +71,7 @@ void MainWindow::on_action_Quit_triggered()
     qApp->quit();
 }
 
-void MainWindow::on_scripts_List_Changed(QVector<quint32> scripts)
+void MainWindow::onScriptsListChanged(QVector<quint32> scripts)
 {
     ui->comboBoxFontScript->clear();
     ui->comboBoxFontScript->setEnabled(false);
@@ -66,7 +81,7 @@ void MainWindow::on_scripts_List_Changed(QVector<quint32> scripts)
     ui->comboBoxFontScript->setEnabled(true);
 }
 
-void MainWindow::on_categories_List_Changed(QVector<quint32> scripts)
+void MainWindow::onCategoriesListChanged(QVector<quint32> scripts)
 {
     ui->comboBoxFontCategory->clear();
     ui->comboBoxFontCategory->setEnabled(false);
@@ -85,7 +100,8 @@ void MainWindow::initDecompositionsComboBox()
 void MainWindow::initCategoriesComboBox()
 {
     ui->comboBoxFontCategory->setModel(m_categoriesModel);
-    QObject::connect(m_fontCharacterModel, &FontCharactersModel::categoriesChanged, this, &MainWindow::on_categories_List_Changed);
+    QObject::connect(m_fontCharacterModel, &FontCharactersModel::categoriesChanged, this, &MainWindow::onCategoriesListChanged);
+    // QObject::connect(this, &MainWindow::onCategoriesListChanged, this, &MainWindow::on_categories_List_Changed);
     connect(ui->comboBoxFontCategory, QOverload<int>::of(&QComboBox::currentIndexChanged),
         [=](int index) {
             if (index < 0) return;
@@ -102,10 +118,32 @@ void MainWindow::initCategoriesComboBox()
     });
 }
 
+void MainWindow::initMSBFilter()
+{
+    QRegularExpressionValidator *v = new QRegularExpressionValidator(QRegularExpression("[\\da-fA-F]{1,2}"), ui->lineEditMSBFilter);
+    ui->lineEditMSBFilter->setValidator(v);
+    QObject::connect(ui->lineEditMSBFilter, &QLineEdit::textChanged, [=](){
+        bool ok;
+        QString text = ui->lineEditMSBFilter->text();
+        int hexValue = ui->lineEditMSBFilter->text().toInt(&ok, 16);  // toInt с основанием 16
+        ui->lineEditMSBFilter->setText(text.toUpper());
+        if (ok) {
+            ui->lineEditMSBFilter->setStyleSheet("background-color: white;");
+            if (text.isEmpty()) {
+                emit m_fontCharacterModel->setUnicodeMSB(-1);
+            } else {
+                emit m_fontCharacterModel->setUnicodeMSB(hexValue);
+            }
+        } else {
+            ui->lineEditMSBFilter->setStyleSheet("background-color: #FFDDDD;");
+        }
+    });
+}
+
 void MainWindow::initScriptComboBox ()
 {
     ui->comboBoxFontScript->setModel(m_scriptsModel);
-    QObject::connect(m_fontCharacterModel, &FontCharactersModel::scriptsChanged, this, &MainWindow::on_scripts_List_Changed);
+    QObject::connect(m_fontCharacterModel, &FontCharactersModel::scriptsChanged, this, &MainWindow::onScriptsListChanged);
 
     connect(ui->comboBoxFontScript, QOverload<int>::of(&QComboBox::currentIndexChanged),
         [=](int index) {

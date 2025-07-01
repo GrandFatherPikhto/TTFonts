@@ -25,6 +25,7 @@ set(PROJECT_SOURCES
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
     qt_add_executable(TTFonts
         MANUAL_FINALIZATION
@@ -39,11 +40,14 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/models/include/unicodemetadatamanager.h
         src/models/unicodemetadatamanager.cpp
         src/main/include/common.h
+        src/widgets/include/gliphwidget.h
+        src/widgets/gliphwidget.cpp
     )
 
     target_include_directories(TTFonts PRIVATE
         src/main/include
         src/models/include
+        src/widgets/include
     )
     
 # Define target properties for Android with Qt 6 as:
@@ -70,6 +74,7 @@ endif()
 
 target_link_libraries(TTFonts PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(TTFonts PRIVATE Qt6::Core)
+target_link_libraries(TTFonts PRIVATE Qt6::Widgets)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

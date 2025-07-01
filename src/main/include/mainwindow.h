@@ -26,13 +26,15 @@ private slots:
 
     void on_action_Quit_triggered();
 
-    void on_scripts_List_Changed (QVector<quint32> scripts);
-    void on_categories_List_Changed (QVector<quint32> categories);
+    void onScriptsListChanged (QVector<quint32> scripts);
+    void onCategoriesListChanged (QVector<quint32> categories);
+
 
 private:
     void initScriptComboBox ();
     void initDecompositionsComboBox ();
     void initCategoriesComboBox ();
+    void initMSBFilter();
 
     Ui::MainWindow *ui;
     FontCharactersModel *m_fontCharacterModel;

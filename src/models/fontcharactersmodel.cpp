@@ -6,7 +6,10 @@ FontCharactersModel::FontCharactersModel(QObject *parent)
     : QAbstractItemModel(parent)
     , m_scriptFilter(FONT_METADATA_DEFAULT_ID)
     , m_categoryFilter(FONT_METADATA_DEFAULT_ID)
-{}
+    , m_MSBFilter(-1)
+{
+    QObject::connect(this, &FontCharactersModel::setUnicodeMSB, this, &FontCharactersModel::setUnicodeMSBFilter);
+}
 
 QVariant FontCharactersModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -137,6 +140,12 @@ QChar FontCharactersModel::characterAt(const QModelIndex &index) const {
     return m_characters.at(index.row()).first;
 }
 
+void FontCharactersModel::setUnicodeMSBFilter(qint16 msb)
+{
+    m_MSBFilter = msb;
+    filterCharList();
+}
+
 Qt::ItemFlags FontCharactersModel::flags(const QModelIndex &index) const {
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
 
@@ -147,19 +156,14 @@ Qt::ItemFlags FontCharactersModel::flags(const QModelIndex &index) const {
     return flags;
 }
 
-void FontCharactersModel::setFont(const QFont &font) {
-    m_font = font;
-    fillCharList();
-    filterCharList();
-}
-
 void FontCharactersModel::filterCharList()
 {
     beginResetModel();
     m_characters.clear();
     for (QVector<QChar>::Iterator it = m_fontCharacters.begin(); it != m_fontCharacters.end(); it ++) {
         if ((m_scriptFilter == FONT_METADATA_DEFAULT_ID || m_scriptFilter == it->script()) &&
-            (m_categoryFilter == FONT_METADATA_DEFAULT_ID || m_categoryFilter == it->category()))
+            (m_categoryFilter == FONT_METADATA_DEFAULT_ID || m_categoryFilter == it->category()) &&
+            ((m_MSBFilter < 0) || it->row() == m_MSBFilter))
         {
             m_characters.append({*it, false});
         }
@@ -208,4 +212,25 @@ void FontCharactersModel::fillCharList ()
     emit categoriesChanged(m_categories);
     emit scriptsChanged(m_scripts);
     emit decompositionTagsChanged(m_decompositions);
+}
+
+QFont FontCharactersModel::font() const
+{
+    return m_font;
+}
+
+void FontCharactersModel::setFont(const QFont &newFont)
+{
+    if (m_font == newFont)
+        return;
+    m_font = newFont;
+    fillCharList();
+    filterCharList();
+
+    emit fontChanged();
+}
+
+void FontCharactersModel::resetFont()
+{
+    setFont({}); // TODO: Adapt to use your actual default value
 }

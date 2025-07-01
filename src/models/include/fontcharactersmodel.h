@@ -32,7 +32,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-    void setFont(const QFont &font);
+    // void setFont(const QFont &font);
 
     QChar characterAt(const QModelIndex &index) const;
 
@@ -46,16 +46,28 @@ public:
         filterCharList();
     }
 
+    // Q_PROPERTY(QColor font MEMBER m_font NOTIFY fontChanged)
+
+    QFont font() const;
+    void setFont(const QFont &newFont);
+    void resetFont();
+
 signals:
     void categoriesChanged (QVector<quint32>);
     void scriptsChanged (QVector<quint32> ids);
     void decompositionTagsChanged (QVector<quint32> ids);
+    void setUnicodeMSB(qint16 msb);
+
+
+    void fontChanged();
 
 private:
+    void setUnicodeMSBFilter(qint16 msb);
     void filterCharList ();
     void fillCharList ();
 
     QFont m_font;
+
     QVector<QPair<QChar, bool>> m_characters;
     QVector<QChar> m_fontCharacters;
     QVector<quint32> m_categories;
@@ -64,6 +76,8 @@ private:
 
     quint32 m_scriptFilter;
     quint32 m_categoryFilter;
+    qint16  m_MSBFilter;
+    Q_PROPERTY(QFont font READ font WRITE setFont RESET resetFont NOTIFY fontChanged FINAL)
 };
 
 #endif // FONTCHARACTERSMODEL_H

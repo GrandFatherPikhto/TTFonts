@@ -1,0 +1,7 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+#define FONT_METADATA_DEFAULT_ID 0xFFFF
+#define FONT_METADATA_DEFAULT_NAME "All"
+
+#endif // COMMON_H

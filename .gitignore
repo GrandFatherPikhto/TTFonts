@@ -1,0 +1,130 @@
+# Игнорировать собранные бинарные файлы
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+
+# Игнорировать объектные файлы и промежуточные файлы компиляции
+*.o
+*.obj
+*.patch
+*.orig
+*.moc
+*.qrc.d
+*.res
+*.rc
+*.qm
+*.ilk
+*.exp
+*.lib
+*.a
+
+# Игнорировать директории сборки (CMake, qmake)
+build-*/
+build/
+*.build/
+*.xcodeproj/
+*.xcworkspace/
+.vs/
+x64/
+x86/
+release/
+debug/
+*.pro.user
+*.pro.user.*
+*.qmake.stash
+*.qmake.cache
+
+# Игнорировать CMake кэш и генерации
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+*.cmake
+Makefile
+*.ninja
+.ninja_deps
+.ninja_log
+
+# Игнорировать Qt Creator специфичные файлы
+*.autosave
+*.swp
+*.swo
+*.creator.user*
+*.config
+*.files
+*.includes
+*.cflags
+*.cxxflags
+*.config
+*.creator
+
+# Игнорировать системные файлы
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Игнорировать зависимости и пакеты
+3rdparty/
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Игнорировать документацию
+docs/_build/
+*.chm
+*.pdf
+
+# Игнорировать тестовые выходные данные
+test-results/
+*.test
+*.xml
+*.tap
+*.trx
+
+# Игнорировать кэш IDE
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# Игнорировать пользовательские настройки
+*.user
+*.user.*
+
+# Игнорировать логи и отладочную информацию
+*.log
+*.trace
+*.pid
+*.core
+*.dump
+*.stackdump
+
+# Игнорировать временные файлы редакторов
+*~
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Игнорировать сгенерированные UI файлы
+ui_*.h
+
+# Игнорировать QML кэш
+.qmlc
+.jsc
+
+# Игнорировать директории пакетов Conan
+.conan/
+conan.lock
+
+# Игнорировать файлы кэша
+.cache/

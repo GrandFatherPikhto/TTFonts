@@ -8,15 +8,24 @@ GliphWidget::GliphWidget(QWidget *parent) :
     , m_gridSize(16)
     , m_gridRows(8)
     , m_gridColumns(8)
+    , m_cellSize(20)
 {
     setMinimumSize(100, 100);
-    setGridSize(m_gridSize);
+    // setGridSize(m_gridSize);
+    m_pixels.resize(m_gridSize);
+    for (auto &row : m_pixels) {
+        row.resize(m_gridSize);
+        row.fill(false);
+    }
+
 }
 
 void GliphWidget::setGlyph(QChar character, const QFont &font)
 {
     m_character = character;
     m_font = font;
+    qDebug() << "setGlyph(" << m_character << ", " << m_font << ")";
+    loadFromChar();
     update();
 }
 
@@ -47,14 +56,14 @@ void GliphWidget::paintEvent(QPaintEvent *event)
 
     // Рисуем пиксели
     const int cellSize = 16;  // Размер ячейки в пикселях (для удобства)
-    // for (int y = 0; y < m_gridSize; ++y) {
-    //     for (int x = 0; x < m_gridSize; ++x) {
-    //         QRect rect(x * cellSize, y * cellSize, cellSize, cellSize);
-    //         painter.fillRect(rect, m_pixels[y][x] ? m_pixelColor : Qt::white);
-    //         painter.setPen(Qt::lightGray);
-    //         painter.drawRect(rect);
-    //     }
-    // }
+    for (int y = 0; y < m_gridSize; ++y) {
+        for (int x = 0; x < m_gridSize; ++x) {
+            QRect rect(x * cellSize, y * cellSize, cellSize, cellSize);
+            painter.fillRect(rect, m_pixels[y][x] ? m_pixelColor : Qt::white);
+            painter.setPen(Qt::lightGray);
+            painter.drawRect(rect);
+        }
+    }
 }
 
 void GliphWidget::mousePressEvent(QMouseEvent *event)
@@ -70,6 +79,46 @@ void GliphWidget::wheelEvent(QWheelEvent *event)
 {
     float delta = event->angleDelta().y() > 0 ? 0.1f : -0.1f;
     setScaleFactor(m_scale + delta);
+}
+
+void GliphWidget::clearGlyph()
+{
+
+}
+
+void GliphWidget::loadFromChar()
+{
+    int scaleFactor = 10;
+    // Очищаем текущие пиксели
+    clearGlyph();
+
+    // Создаем временное изображение для растеризации QImage::Format_Mono QImage::Format_Grayscale8
+    QImage image(m_gridSize * scaleFactor, m_gridSize * scaleFactor, QImage::Format_Mono);
+    image.fill(0); // Черный фон
+
+    m_font.setPixelSize(m_gridSize * scaleFactor); // Важно для точного соответствия сетке
+
+    // Рисуем символ на изображении
+    QPainter painter(&image);
+    painter.setFont(m_font);
+    painter.setPen(Qt::color1); // Белый цвет для символа
+
+
+    // Центрируем символ
+    QRectF boundingRect = painter.boundingRect(image.rect(), Qt::AlignCenter, m_character);
+    painter.drawText(image.rect(), Qt::AlignCenter, m_character);
+    painter.end();
+    // Масштабируем обратно до 16x16
+    image = image.scaled(m_gridSize, m_gridSize, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+
+    // Переносим пиксели в нашу сетку
+    for (int y = 0; y < m_gridSize; ++y) {
+        for (int x = 0; x < m_gridSize; ++x) {
+            m_pixels[y][x] = image.pixelIndex(x, y) == 1;
+            qDebug() << x << ", " << y << ", " << image.pixelIndex(x, y);
+        }
+    }
+    update();
 }
 
 QChar GliphWidget::character() const

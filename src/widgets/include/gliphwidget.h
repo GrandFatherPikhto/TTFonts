@@ -58,6 +58,9 @@ signals:
     void gridRowsChanged();
 
 private:
+    void loadFromChar ();
+    void clearGlyph ();
+
     QChar m_character;
     QFont m_font;
     QColor m_bgColor = Qt::white;
@@ -67,6 +70,7 @@ private:
     int m_gridSize;        // размер ячейки сетки (16 пикселей)
     int m_gridColumns;      // кол-во столбцов (8x8)
     int m_gridRows;         // кол-во строк
+    int m_cellSize;
     QVector<QVector<bool>> m_pixels;        // Матрица пикселей
     QColor m_pixelColor = Qt::black;        // Цвет "включенного" пикселя
 

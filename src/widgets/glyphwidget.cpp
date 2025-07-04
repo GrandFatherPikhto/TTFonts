@@ -1,26 +1,38 @@
 #include <QPainter>
 #include <QMouseEvent>
 
-#include "gliphwidget.h"
+#include "glyphwidget.h"
 
-GliphWidget::GliphWidget(QWidget *parent) :
+#define TRUNC(x) ((x) >> 6)
+
+GlyphWidget::GlyphWidget(QWidget *parent) :
     QWidget(parent)
     , m_gridSize(16)
     , m_gridRows(8)
     , m_gridColumns(8)
     , m_cellSize(20)
+    , m_fontPath("C:\\Windows\\Fonts\\arial.ttf")
+    , m_fontSize(12)
+    , m_character(QChar('M'))
+    , m_glyphCols(0)
+    , m_glyphRows(0)
 {
     setMinimumSize(100, 100);
-    // setGridSize(m_gridSize);
-    m_pixels.resize(m_gridSize);
-    for (auto &row : m_pixels) {
-        row.resize(m_gridSize);
-        row.fill(false);
-    }
-
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_font = QFont("Arial", m_charSize, QFont::Normal);
+    m_character = QChar('$');
+    m_glyphPixels.clear();
+    initFT ();
+    loadCharFT(QChar('M'), 10);
+    printBitmap();
 }
 
-void GliphWidget::setGlyph(QChar character, const QFont &font)
+GlyphWidget::~GlyphWidget() {
+    FT_Done_Face(m_face);
+    FT_Done_FreeType(m_library);
+}
+
+void GlyphWidget::setGlyph(QChar character, const QFont &font)
 {
     m_character = character;
     m_font = font;
@@ -29,28 +41,108 @@ void GliphWidget::setGlyph(QChar character, const QFont &font)
     update();
 }
 
-void GliphWidget::setBackgroundColor(const QColor &color)
+void GlyphWidget::initFT()
+{
+    FT_Error error = FT_Err_Ok;
+    m_face = 0;
+    m_library = 0;
+
+    // For simplicity, the error handling is very rudimentary.
+    error = FT_Init_FreeType(&m_library);
+    if (!error)
+    {
+        qDebug() << "FT Library loaded";
+        error = FT_New_Face(m_library, m_fontPath.toLatin1().constData(), 0, &m_face);
+        if (!error)
+        {
+            qDebug() << "New Face Created";
+        } else {
+            qDebug() << "New Face error";
+        }
+    } else {
+        qDebug() << "FT Load Library error";
+    }
+}
+
+void GlyphWidget::loadCharFT(const QChar &character, quint32 charSize) {
+    // error = FT_Set_Char_Size(m_face, 0, pointSize * 64, physicalDpiX(), physicalDpiY());
+    FT_Error error = FT_Set_Pixel_Sizes(m_face, 0, charSize);
+
+    FT_UInt glyph_index = 0;
+    glyph_index = FT_Get_Char_Index(m_face, character.unicode());
+
+    qDebug() << "Glyph Index: " << glyph_index;
+
+    error = FT_Load_Glyph(m_face, glyph_index, FT_LOAD_RENDER | FT_LOAD_TARGET_MONO);
+
+    if (!error)
+    {
+        FT_Pos left = m_face->glyph->metrics.horiBearingX;
+        FT_Pos right = left + m_face->glyph->metrics.width;
+        FT_Pos top = m_face->glyph->metrics.horiBearingY;
+        FT_Pos bottom = top - m_face->glyph->metrics.height;
+
+        m_glyphRect = QRect(QPoint(TRUNC(left),
+                                   -TRUNC(top) + 1),
+                            QSize(TRUNC(right - left) + 1,
+                                  TRUNC(top - bottom) + 1));
+        setFixedSize(m_glyphRect.width(),
+                     m_glyphRect.height());
+        qDebug() << "Loaded Glyph " << character;
+        m_character = character;
+        m_charSize = charSize;
+    }
+}
+
+
+void GlyphWidget::printBitmap() {
+    QString line = "";
+    FT_Bitmap* bitmap = &m_face->glyph->bitmap;
+    qDebug() << "Columns: " << bitmap->width << ", Rows: " << bitmap->rows;
+    m_glyphRows = bitmap->rows;
+    m_glyphCols = bitmap->width;
+    m_glyphPixels.clear();
+    if (bitmap->pixel_mode == FT_PIXEL_MODE_MONO) {
+        for (int y = 0; y < bitmap->rows; y++) {
+            line.clear();
+            for (int x = 0; x < bitmap->width; x++) {
+                // Получаем байт, содержащий пиксель
+                unsigned char byte = bitmap->buffer[y * bitmap->pitch + (x / 8)];
+                // Извлекаем бит (MSB → x=0, LSB → x=7)
+                unsigned char bit = (byte >> (7 - (x % 8))) & 0x1;
+                // printf("%c", bit ? '#' : ' ');
+                line.append(bit ? '#' : ' ');
+                m_glyphPixels.append(bit ? true : false);
+            }
+            qDebug() << line;
+        }
+    }
+    qDebug() << m_glyphPixels;
+}
+
+
+void GlyphWidget::setBackgroundColor(const QColor &color)
 {
     m_bgColor = color;
     update();
 }
 
-void GliphWidget::setGlyphColor(const QColor &color)
+void GlyphWidget::setGlyphColor(const QColor &color)
 {
     m_glyphColor = color;
     update();
 }
 
-void GliphWidget::setScaleFactor(float scale)
+void GlyphWidget::setScaleFactor(float scale)
 {
     m_scale = qBound(0.5f, scale, 5.0f); // Ограничиваем масштаб
     update();
 }
 
-void GliphWidget::paintEvent(QPaintEvent *event)
+void GlyphWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
-
+#if 0
     QPainter painter(this);
     painter.fillRect(rect(), Qt::white);
 
@@ -64,9 +156,52 @@ void GliphWidget::paintEvent(QPaintEvent *event)
             painter.drawRect(rect);
         }
     }
+#endif
+    qDebug() << "Width: " << this->width() << ", Height: " << this->height();
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, false);
+
+    // Очищаем фон
+    painter.fillRect(rect(), Qt::white);
+
+    // Проверяем, что данные валидны
+    if(m_glyphPixels.isEmpty() || m_glyphCols == 0 || m_glyphRows == 0) {
+        return;
+    }
+
+    // Рассчитываем начальную позицию для центрирования
+    int startX = (width() - m_glyphCols * m_cellSize) / 2;
+    int startY = (height() - m_glyphRows * m_cellSize) / 2;
+    qDebug() << "Rows: " << m_glyphRows << ", Cols: " << m_glyphCols << ", Size: " << m_glyphPixels.length() << ", Cell: " << m_cellSize;
+    // Отрисовываем каждый пиксель
+    for(quint32 y = 0; y < m_glyphRows; ++y) {
+        for(quint32 x = 0; x < m_glyphCols; ++x) {
+            // Получаем значение пикселя (true - закрашен, false - пустой)
+            bool pixel = m_glyphPixels[y * m_glyphCols + x];
+
+            // Рассчитываем координаты квадрата с учетом масштаба
+            QRect pixelRect(
+                startX + x * m_cellSize,
+                startY + y * m_cellSize,
+                m_cellSize,
+                m_cellSize
+                );
+
+            // Отрисовываем квадрат
+            if(pixel) {
+                painter.fillRect(pixelRect, Qt::black);
+            } else {
+                painter.fillRect(pixelRect, Qt::white);
+                painter.setPen(Qt::lightGray);
+                painter.drawRect(pixelRect);
+            }
+        }
+    }
+
+    painter.end();
 }
 
-void GliphWidget::mousePressEvent(QMouseEvent *event)
+void GlyphWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
@@ -75,18 +210,18 @@ void GliphWidget::mousePressEvent(QMouseEvent *event)
     QWidget::mousePressEvent(event);
 }
 
-void GliphWidget::wheelEvent(QWheelEvent *event)
+void GlyphWidget::wheelEvent(QWheelEvent *event)
 {
     float delta = event->angleDelta().y() > 0 ? 0.1f : -0.1f;
     setScaleFactor(m_scale + delta);
 }
 
-void GliphWidget::clearGlyph()
+void GlyphWidget::clearGlyph()
 {
 
 }
 
-void GliphWidget::loadFromChar()
+void GlyphWidget::loadFromChar()
 {
     int scaleFactor = 10;
     // Очищаем текущие пиксели
@@ -100,12 +235,13 @@ void GliphWidget::loadFromChar()
 
     // Рисуем символ на изображении
     QPainter painter(&image);
+
     painter.setFont(m_font);
     painter.setPen(Qt::color1); // Белый цвет для символа
 
 
     // Центрируем символ
-    QRectF boundingRect = painter.boundingRect(image.rect(), Qt::AlignCenter, m_character);
+    // QRectF boundingRect = painter.boundingRect(image.rect(), Qt::AlignCenter, m_character);
     painter.drawText(image.rect(), Qt::AlignCenter, m_character);
     painter.end();
     // Масштабируем обратно до 16x16
@@ -121,12 +257,12 @@ void GliphWidget::loadFromChar()
     update();
 }
 
-QChar GliphWidget::character() const
+QChar GlyphWidget::character() const
 {
     return m_character;
 }
 
-void GliphWidget::setCharacter(const QChar &newCharacter)
+void GlyphWidget::setCharacter(const QChar &newCharacter)
 {
     if (m_character == newCharacter)
         return;
@@ -134,17 +270,17 @@ void GliphWidget::setCharacter(const QChar &newCharacter)
     emit characterChanged();
 }
 
-void GliphWidget::resetCharacter()
+void GlyphWidget::resetCharacter()
 {
     setCharacter({}); // TODO: Adapt to use your actual default value
 }
 
-QFont GliphWidget::font() const
+QFont GlyphWidget::font() const
 {
     return m_font;
 }
 
-void GliphWidget::setFont(const QFont &newFont)
+void GlyphWidget::setFont(const QFont &newFont)
 {
     if (m_font == newFont)
         return;
@@ -152,17 +288,17 @@ void GliphWidget::setFont(const QFont &newFont)
     emit fontChanged();
 }
 
-void GliphWidget::resetFont()
+void GlyphWidget::resetFont()
 {
     setFont({}); // TODO: Adapt to use your actual default value
 }
 
-QColor GliphWidget::bgColor() const
+QColor GlyphWidget::bgColor() const
 {
     return m_bgColor;
 }
 
-void GliphWidget::setBgColor(const QColor &newBgColor)
+void GlyphWidget::setBgColor(const QColor &newBgColor)
 {
     if (m_bgColor == newBgColor)
         return;
@@ -170,27 +306,27 @@ void GliphWidget::setBgColor(const QColor &newBgColor)
     emit bgColorChanged();
 }
 
-void GliphWidget::resetBgColor()
+void GlyphWidget::resetBgColor()
 {
     setBgColor({}); // TODO: Adapt to use your actual default value
 }
 
-QColor GliphWidget::glyphColor() const
+QColor GlyphWidget::glyphColor() const
 {
     return m_glyphColor;
 }
 
-void GliphWidget::resetGlyphColor()
+void GlyphWidget::resetGlyphColor()
 {
     setGlyphColor({}); // TODO: Adapt to use your actual default value
 }
 
-float GliphWidget::scale() const
+float GlyphWidget::scale() const
 {
     return m_scale;
 }
 
-void GliphWidget::setScale(float newScale)
+void GlyphWidget::setScale(float newScale)
 {
     if (qFuzzyCompare(m_scale, newScale))
         return;
@@ -198,17 +334,17 @@ void GliphWidget::setScale(float newScale)
     emit scaleChanged();
 }
 
-void GliphWidget::resetScale()
+void GlyphWidget::resetScale()
 {
     setScale({}); // TODO: Adapt to use your actual default value
 }
 
-bool GliphWidget::showGrid() const
+bool GlyphWidget::showGrid() const
 {
     return m_showGrid;
 }
 
-void GliphWidget::setShowGrid(bool newShowGrid)
+void GlyphWidget::setShowGrid(bool newShowGrid)
 {
     if (m_showGrid == newShowGrid)
         return;
@@ -216,17 +352,17 @@ void GliphWidget::setShowGrid(bool newShowGrid)
     emit showGridChanged();
 }
 
-void GliphWidget::resetShowGrid()
+void GlyphWidget::resetShowGrid()
 {
     setShowGrid({}); // TODO: Adapt to use your actual default value
 }
 
-int GliphWidget::gridSize() const
+int GlyphWidget::gridSize() const
 {
     return m_gridSize;
 }
 
-void GliphWidget::setGridSize(int newGridSize)
+void GlyphWidget::setGridSize(int newGridSize)
 {
     if (m_gridSize == newGridSize)
         return;
@@ -243,17 +379,17 @@ void GliphWidget::setGridSize(int newGridSize)
     emit gridSizeChanged();
 }
 
-void GliphWidget::resetGridSize()
+void GlyphWidget::resetGridSize()
 {
     setGridSize({}); // TODO: Adapt to use your actual default value
 }
 
-int GliphWidget::gridColumns() const
+int GlyphWidget::gridColumns() const
 {
     return m_gridColumns;
 }
 
-void GliphWidget::setGridColumns(int newGridColumns)
+void GlyphWidget::setGridColumns(int newGridColumns)
 {
     if (m_gridColumns == newGridColumns)
         return;
@@ -261,17 +397,17 @@ void GliphWidget::setGridColumns(int newGridColumns)
     emit gridColumnsChanged();
 }
 
-void GliphWidget::resetGridColumns()
+void GlyphWidget::resetGridColumns()
 {
     setGridColumns({}); // TODO: Adapt to use your actual default value
 }
 
-int GliphWidget::gridRows() const
+int GlyphWidget::gridRows() const
 {
     return m_gridRows;
 }
 
-void GliphWidget::setGridRows(int newGridRows)
+void GlyphWidget::setGridRows(int newGridRows)
 {
     if (m_gridRows == newGridRows)
         return;
@@ -279,7 +415,7 @@ void GliphWidget::setGridRows(int newGridRows)
     emit gridRowsChanged();
 }
 
-void GliphWidget::resetGridRows()
+void GlyphWidget::resetGridRows()
 {
     setGridRows({}); // TODO: Adapt to use your actual default value
 }

@@ -1,13 +1,25 @@
-#ifndef GLIPHWIDGET_H
-#define GLIPHWIDGET_H
+#ifndef GLYPHWIDGET_H
+#define GLYPHWIDGET_H
 
 #include <QWidget>
 
-class GliphWidget : public QWidget
+#include <QObject>
+#include <QWidget>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_TYPES_H
+#include FT_OUTLINE_H
+#include FT_RENDER_H
+
+class GlyphWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit GliphWidget(QWidget *parent = nullptr);
+    explicit GlyphWidget(QWidget *parent = nullptr);
+    ~GlyphWidget();
+
     void setGlyph(QChar character, const QFont& font);
     void setBackgroundColor(const QColor& color);
     void setGlyphColor(const QColor& color);
@@ -44,6 +56,9 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
+    void initFT();
+    void loadCharFT(const QChar &character, quint32 charSize);
+    void printBitmap();
 
 signals:
     void clicked();
@@ -66,13 +81,27 @@ private:
     QColor m_bgColor = Qt::white;
     QColor m_glyphColor = Qt::black;
     float m_scale = 1.0f;
-    bool m_showGrid = true;      // показывать ли сетку
-    int m_gridSize;        // размер ячейки сетки (16 пикселей)
-    int m_gridColumns;      // кол-во столбцов (8x8)
-    int m_gridRows;         // кол-во строк
-    int m_cellSize;
+    bool m_showGrid = true; //< показывать ли сетку
+    int m_gridSize;         //< размер ячейки сетки (16 пикселей)
+    int m_gridColumns;      //< кол-во столбцов (8x8)
+    int m_gridRows;         //< кол-во строк
+    int m_cellSize;         //< Размер ячейки для отрисовки
+    int m_charSize;         //< Размер шрифта для отрисовки
+
+    QVector<bool> m_glyphPixels;
+    quint32 m_glyphRows;
+    quint32 m_glyphCols;
+
     QVector<QVector<bool>> m_pixels;        // Матрица пикселей
     QColor m_pixelColor = Qt::black;        // Цвет "включенного" пикселя
+
+    FT_Library m_library;
+    FT_Face m_face;
+
+    quint32 m_fontSize;
+    QRect m_glyphRect;
+    QString m_fontPath;
+
 
     Q_PROPERTY(QChar character READ character WRITE setCharacter RESET resetCharacter NOTIFY characterChanged FINAL)
     Q_PROPERTY(QFont font READ font WRITE setFont RESET resetFont NOTIFY fontChanged FINAL)
@@ -84,4 +113,4 @@ private:
     Q_PROPERTY(int gridRows READ gridRows WRITE setGridRows RESET resetGridRows NOTIFY gridRowsChanged FINAL)
 };
 
-#endif // GLIPHWIDGET_H
+#endif // GLYPHWIDGET_H

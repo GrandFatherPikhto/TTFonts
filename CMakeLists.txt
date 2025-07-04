@@ -9,6 +9,18 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Проверяем компилятор
+if(MSVC)
+    message(STATUS "Using MSVC compiler")
+    # Пути к FreeType
+    set(FREETYPE_INCLUDE_DIR "./libraries/freetype/msvc/include/freetype/")
+    set(FREETYPE_LIBRARY_DIR "./libraries/freetype/msvc/")
+elseif(MINGW)
+    message(STATUS "Using MinGW compiler")
+    set(FREETYPE_INCLUDE_DIR "./libraries/freetype/mingw64/include/freetype2/")
+    set(FREETYPE_LIBRARY_DIR "./libraries/freetype/mingw64/bin/")
+endif()
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
@@ -40,11 +52,13 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
         src/models/include/unicodemetadatamanager.h
         src/models/unicodemetadatamanager.cpp
         src/main/include/common.h
-        src/widgets/include/gliphwidget.h
-        src/widgets/gliphwidget.cpp
+        src/widgets/include/glyphwidget.h
+        src/widgets/glyphwidget.cpp
     )
 
-    target_include_directories(TTFonts PRIVATE
+    target_include_directories(TTFonts
+        PRIVATE
+        ${FREETYPE_INCLUDE_DIR}
         src/main/include
         src/models/include
         src/widgets/include
@@ -72,9 +86,12 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
+target_link_directories(TTFonts PRIVATE ${FREETYPE_LIBRARY_DIR})
+
 target_link_libraries(TTFonts PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(TTFonts PRIVATE Qt6::Core)
 target_link_libraries(TTFonts PRIVATE Qt6::Widgets)
+target_link_libraries(TTFonts PRIVATE freetype)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

@@ -1,10 +1,15 @@
 #ifndef GLYPHWIDGET_H
 #define GLYPHWIDGET_H
 
-#include <QWidget>
-
 #include <QObject>
 #include <QWidget>
+
+#include <QLineEdit>
+#include <QComboBox>
+#include <QDockWidget>
+#include <QSplitter>
+#include <QListWidget>
+#include <QSpinBox>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -20,7 +25,6 @@ public:
     explicit GlyphWidget(QWidget *parent = nullptr);
     ~GlyphWidget();
 
-    void setGlyph(QChar character, const QFont& font);
     void setBackgroundColor(const QColor& color);
     void setGlyphColor(const QColor& color);
     void setScaleFactor(float scale);
@@ -56,15 +60,13 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
-    void initFT();
     void loadCharFT(const QChar &character, quint32 charSize);
-    void printBitmap();
 
 signals:
     void clicked();
 
-    void characterChanged();
-    void fontChanged();
+    void characterChanged(const QChar &);
+    void fontChanged(const QFont &);
     void bgColorChanged();
     void scaleChanged();
     void showGridChanged();
@@ -73,6 +75,10 @@ signals:
     void gridRowsChanged();
 
 private:
+    void initFT();
+    void loadFTFont(const QFont &font);
+    void clearFT();
+    void convertToGlyphPixels();
     void loadFromChar ();
     void clearGlyph ();
 
@@ -101,7 +107,9 @@ private:
     quint32 m_fontSize;
     QRect m_glyphRect;
     QString m_fontPath;
+    FT_Error m_ftError;
 
+    bool m_glyphUpdated;
 
     Q_PROPERTY(QChar character READ character WRITE setCharacter RESET resetCharacter NOTIFY characterChanged FINAL)
     Q_PROPERTY(QFont font READ font WRITE setFont RESET resetFont NOTIFY fontChanged FINAL)

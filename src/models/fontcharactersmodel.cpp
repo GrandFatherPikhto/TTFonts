@@ -1,13 +1,14 @@
 #include "fontcharactersmodel.h"
 #include "unicodemetadatamanager.h"
-#include "common.h"
 
 FontCharactersModel::FontCharactersModel(QObject *parent)
     : QAbstractItemModel(parent)
-    , m_scriptFilter(FONT_METADATA_DEFAULT_ID)
-    , m_categoryFilter(FONT_METADATA_DEFAULT_ID)
     , m_MSBFilter(-1)
 {
+    m_characters.clear();
+    m_fontCharacters.clear();
+    m_scriptFilter.clear();
+    m_categoryFilter.clear();
     QObject::connect(this, &FontCharactersModel::setUnicodeMSB, this, &FontCharactersModel::setUnicodeMSBFilter);
 }
 
@@ -65,7 +66,7 @@ int FontCharactersModel::columnCount(const QModelIndex &parent) const
 
 bool FontCharactersModel::setData(const QModelIndex &index, const QVariant &value, int role) {
     if (index.column() == 0 && role == Qt::CheckStateRole) {
-        m_characters[index.row()].second = value.toBool();
+        m_characters[index.row()].setSelected(value.toBool());
         emit dataChanged(index, index, {Qt::CheckStateRole});
         return true;
     }
@@ -77,8 +78,14 @@ QVariant FontCharactersModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= m_characters.size())
         return QVariant();
 
-    const QChar ch = m_characters.at(index.row()).first;
-    bool selected = m_characters.at(index.row()).second;
+    int idx = index.row();
+
+    if (idx >= m_characters.length())
+        return QVariant();
+
+    const QChar ch = m_characters.at(idx).getChar();
+    const bool selected = m_characters.at(idx).isSelected();
+
 
     switch (index.column()) {
         case 0: // Выбрать символ для обработки
@@ -127,6 +134,9 @@ QVariant FontCharactersModel::data(const QModelIndex &index, int role) const
             if (role == Qt::DisplayRole)
                 return QString("&#%1;").arg(ch.unicode());
             break;
+
+        default:
+            return QVariant();
     }
 
     return QVariant();
@@ -137,7 +147,7 @@ QChar FontCharactersModel::characterAt(const QModelIndex &index) const {
     if (!index.isValid() || index.row() >= m_characters.size())
         return QChar();
 
-    return m_characters.at(index.row()).first;
+    return m_characters.at(index.row()).getChar();
 }
 
 void FontCharactersModel::setUnicodeMSBFilter(qint16 msb)
@@ -158,22 +168,25 @@ Qt::ItemFlags FontCharactersModel::flags(const QModelIndex &index) const {
 
 void FontCharactersModel::filterCharList()
 {
-    beginResetModel();
+    qDebug() << __FUNCTION__ << m_fontCharacters.length();
+    beginResetModel(); // Сообщаем представлению о начале изменений    
     m_characters.clear();
-    for (QVector<QChar>::Iterator it = m_fontCharacters.begin(); it != m_fontCharacters.end(); it ++) {
-        if ((m_scriptFilter == FONT_METADATA_DEFAULT_ID || m_scriptFilter == it->script()) &&
-            (m_categoryFilter == FONT_METADATA_DEFAULT_ID || m_categoryFilter == it->category()) &&
-            ((m_MSBFilter < 0) || it->row() == m_MSBFilter))
+    for (const auto& charItem : std::as_const(m_fontCharacters)) {
+        if ((m_categoryFilter.isEmpty() || m_categoryFilter.contains(static_cast<QChar::Category>(charItem.getChar().category()))) &&
+            (m_scriptFilter.isEmpty() || m_scriptFilter.contains(charItem.getChar().script())) &&
+            (m_MSBFilter < 0 || charItem.getChar().row() == m_MSBFilter))
         {
-            m_characters.append({*it, false});
+            m_characters.append(charItem);
         }
     }
-    endResetModel();
+    endResetModel(); // Сообщаем представлению об окончании изменений    
+    qDebug() << m_fontCharacters.length() << "/" << m_characters.length();
 }
 
 void FontCharactersModel::fillCharList ()
 {
-    m_characters.clear();
+    qDebug() << __FUNCTION__;
+    m_fontCharacters.clear();
 
     QFontMetrics fm(m_font);
     for (uint32_t code = 32; code < 65535; ++code) { // Пропускаем управляющие символы
@@ -182,7 +195,6 @@ void FontCharactersModel::fillCharList ()
         {
             QRect bbox = fm.boundingRect(ch);
             if (bbox.width() > 1 && bbox.height() > 1) {
-                m_fontCharacters.append(ch);
                 if (!m_categories.contains(ch.category()))
                 {
                     m_categories.append(ch.category());
@@ -197,7 +209,7 @@ void FontCharactersModel::fillCharList ()
                 // {
                 //     m_decompositions.append(ch.decompositionTag());
                 // }
-
+                m_fontCharacters.append({ch, false});
             }
         }
         // QChar::Other_NotAssigned
@@ -207,11 +219,59 @@ void FontCharactersModel::fillCharList ()
         }
     }
 
-    qDebug() << "Added " << m_fontCharacters.length() << " chars";
-
+    qDebug() << __FUNCTION__ << " Added " << m_fontCharacters.length() << " chars";
+    // Дополнительно можно явно уведомить:
+    // emit dataChanged(index(0, 0), index(rowCount()-1, columnCount()-1));
     emit categoriesChanged(m_categories);
     emit scriptsChanged(m_scripts);
     emit decompositionTagsChanged(m_decompositions);
+}
+
+void FontCharactersModel::handleSelectionCategoriesChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    const QModelIndexList selectedIndexes = selected.indexes();
+    for (const QModelIndex &index : selectedIndexes) {
+        // qDebug() << "Selected" << ;
+        quint32 id = index.data(Qt::UserRole).toUInt();
+        if (!m_categoryFilter.contains(index.data(Qt::UserRole))) {
+            m_categoryFilter.append(id);
+        }
+    }
+
+    const QModelIndexList deselectedIndexes = deselected.indexes();
+    for (const QModelIndex &index : deselectedIndexes) {
+        // qDebug() << "Deselected" << index.data(Qt::UserRole).toString();
+        // Находим позицию элемента
+        quint32 id = index.data(Qt::UserRole).toUInt();
+        int idx = m_categoryFilter.indexOf(id);
+        if (idx != -1) {
+            m_categoryFilter.remove(idx);
+        }
+    }
+
+    filterCharList();
+}
+
+void FontCharactersModel::handleSelectionScriptsChanged(const QItemSelection &selected, const QItemSelection &deselected) {
+    const QModelIndexList selectedIndexes = selected.indexes();
+    for (const QModelIndex &index : selectedIndexes) {
+        quint32 id = index.data(Qt::UserRole).toUInt();
+        if (!m_scriptFilter.contains(index.data(Qt::UserRole))) {
+            m_scriptFilter.append(id);
+        }
+    }
+
+    const QModelIndexList deselectedIndexes = deselected.indexes();
+    for (const QModelIndex &index : deselectedIndexes) {
+        // Находим позицию элемента
+        quint32 id = index.data(Qt::UserRole).toUInt();
+        int idx = m_scriptFilter.indexOf(id);
+        if (idx != -1) {
+            m_scriptFilter.remove(idx);
+        }
+    }
+
+    filterCharList();
 }
 
 QFont FontCharactersModel::font() const
@@ -233,4 +293,8 @@ void FontCharactersModel::setFont(const QFont &newFont)
 void FontCharactersModel::resetFont()
 {
     setFont({}); // TODO: Adapt to use your actual default value
+    fillCharList();
+    filterCharList();
+
+    emit fontChanged();
 }

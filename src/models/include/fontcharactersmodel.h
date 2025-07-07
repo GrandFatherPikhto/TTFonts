@@ -3,11 +3,14 @@
 
 #include <QAbstractTableModel>
 #include <QAbstractItemModel>
+#include <QItemSelection>
 #include <QFont>
 #include <QFontMetrics>
 #include <QChar>
 #include <QString>
 #include <QPair>
+
+#include "fontcharitem.h"
 
 class FontCharactersModel : public QAbstractItemModel
 {
@@ -36,14 +39,16 @@ public:
 
     QChar characterAt(const QModelIndex &index) const;
 
-    void setCategoryFilter(quint32 filter) {
-        m_categoryFilter = filter;
-        filterCharList();
+    void setCategoryFilter(const QVector<quint32> &categories) {
+        QVector<quint32> temp = categories; // Создаем копию
+        m_categoryFilter.swap(temp);
+        fillCharList();
     }
 
-    void setScriptFilter(quint32 filter) {
-        m_scriptFilter = filter;
-        filterCharList();
+    void setScriptFilter(const QVector<quint32> &scripts) {
+        QVector<quint32> temp = scripts; // Создаем копию
+        m_scriptFilter.swap(temp);
+        fillCharList();
     }
 
     // Q_PROPERTY(QColor font MEMBER m_font NOTIFY fontChanged)
@@ -51,6 +56,10 @@ public:
     QFont font() const;
     void setFont(const QFont &newFont);
     void resetFont();
+
+public slots:
+    void handleSelectionCategoriesChanged(const QItemSelection &selected, const QItemSelection &deselected);
+    void handleSelectionScriptsChanged(const QItemSelection &selected, const QItemSelection &deselected);
 
 signals:
     void categoriesChanged (QVector<quint32>);
@@ -63,19 +72,19 @@ signals:
 
 private:
     void setUnicodeMSBFilter(qint16 msb);
-    void filterCharList ();
     void fillCharList ();
+    void filterCharList();
 
     QFont m_font;
 
-    QVector<QPair<QChar, bool>> m_characters;
-    QVector<QChar> m_fontCharacters;
+    QVector<FontCharItem> m_characters;
+    QVector<FontCharItem> m_fontCharacters;
     QVector<quint32> m_categories;
     QVector<quint32> m_decompositions;
     QVector<quint32> m_scripts;
 
-    quint32 m_scriptFilter;
-    quint32 m_categoryFilter;
+    QVector<quint32> m_scriptFilter;
+    QVector<quint32> m_categoryFilter;
     qint16  m_MSBFilter;
     Q_PROPERTY(QFont font READ font WRITE setFont RESET resetFont NOTIFY fontChanged FINAL)
 };

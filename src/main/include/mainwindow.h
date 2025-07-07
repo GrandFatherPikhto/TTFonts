@@ -4,8 +4,9 @@
 #include <QMainWindow>
 #include <QFontDialog>
 
-#include "fontcharactersmodel.h"
-#include "fontmetadatamodel.h"
+#include "glyphwidget.h"
+
+#include "glyphselectordock.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,24 +24,21 @@ public:
 
 private slots:
     void on_actionImport_Font_triggered();
-
     void on_action_Quit_triggered();
 
-    void onScriptsListChanged (QVector<quint32> scripts);
-    void onCategoriesListChanged (QVector<quint32> categories);
-
+signals:
+    void saveCurrentState ();
 
 private:
-    void initScriptComboBox ();
-    void initDecompositionsComboBox ();
-    void initCategoriesComboBox ();
-    void initMSBFilter();
+    void closeEvent(QCloseEvent* event) override;
+    void setupGlyphDock ();
+    void setupGlyphWidget();
+    void saveGeometryAndState ();
+    void restoreGeometryAndState ();
 
     Ui::MainWindow *ui;
-    FontCharactersModel *m_fontCharacterModel;
 
-    FontMetadataModel *m_scriptsModel;
-    FontMetadataModel *m_categoriesModel;
-    FontMetadataModel *m_decompositionsModel;
+    GlyphSelectorDock *m_glyphSelectorDock;
+    GlyphWidget *m_glyphWidget;
 };
 #endif // MAINWINDOW_H

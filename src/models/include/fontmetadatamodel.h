@@ -4,6 +4,8 @@
 #include <QAbstractListModel>
 #include <QObject>
 
+#include "fontmetadataitem.h"
+
 class FontMetadataModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -16,13 +18,14 @@ public:
 
     // Добавление данных
     void addItem(quint32 id, const QString& name);
-    void clearItemList ();
+    void clearItems ();
 
 private:
     void sortItems();
     void addDefaultItem ();
 
-    QVector<QPair<quint32, QString>> m_items; // Хранит id и название
+    // QVector<QPair<quint32, QString>> m_items; // Хранит id и название
+    QVector<FontMetadataItem> m_items;
 };
 
 #endif // SCRIPTMODEL_H

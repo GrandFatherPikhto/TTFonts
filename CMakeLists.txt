@@ -46,14 +46,24 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
         src/models/include/fontcharactersmodel.h
         src/models/fontcharactersmodel.cpp
         # FontMetadataModel
-        src/models/include/fontmetadatamodel.h 
+        src/models/include/fontmetadatamodel.h
+        src/models/include/fontmetadataitem.h 
         src/models/fontmetadatamodel.cpp
-        # Unicode Metadata Manager
+        src/models/fontmetadataitem.cpp
         src/models/include/unicodemetadatamanager.h
         src/models/unicodemetadatamanager.cpp
+        src/models/include/fontcharitem.h
+        src/models/fontcharitem.cpp
+        # Unicode Metadata Manager
         src/main/include/common.h
         src/widgets/include/glyphwidget.h
         src/widgets/glyphwidget.cpp
+        # Font Filter Dock Panel
+        src/docks/include/glyphselectordock.h
+        src/docks/glyphselectordock.cpp
+        # Utils
+        src/utils/include/utils.h
+        src/utils/utils.cpp
     )
 
     target_include_directories(TTFonts
@@ -62,6 +72,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
         src/main/include
         src/models/include
         src/widgets/include
+        src/docks/include
+        src/utils/include
     )
     
 # Define target properties for Android with Qt 6 as:

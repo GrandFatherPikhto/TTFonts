@@ -20,115 +20,6 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <widget class="QSplitter" name="splitterFontTable">
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-      <widget class="QSplitter" name="splitterEditor">
-       <property name="orientation">
-        <enum>Qt::Orientation::Vertical</enum>
-       </property>
-       <widget class="QFrame" name="frameFontFilter">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Shape::StyledPanel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Shadow::Raised</enum>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <widget class="QGroupBox" name="groupBoxFontFilter">
-           <property name="title">
-            <string>Filters</string>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_4">
-            <item>
-             <layout class="QVBoxLayout" name="verticalLayoutFilters">
-              <item>
-               <widget class="QLabel" name="labelScript">
-                <property name="text">
-                 <string>Language Script</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="comboBoxFontScript">
-                <property name="editable">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="labelCategory">
-                <property name="text">
-                 <string>Category</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="comboBoxFontCategory">
-                <property name="editable">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="labelMSB">
-                <property name="text">
-                 <string>Most Significant Bytes</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEditMSBFilter">
-                <property name="maximumSize">
-                 <size>
-                  <width>100</width>
-                  <height>98</height>
-                 </size>
-                </property>
-                <property name="maxLength">
-                 <number>2</number>
-                </property>
-                <property name="placeholderText">
-                 <string extracomment="Unicode Most Significant Bytes"/>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QTableView" name="tableCharView"/>
-      </widget>
-      <widget class="GlyphWidget" name="glyphWidget" native="true">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>500</width>
-         <height>500</height>
-        </size>
-       </property>
-      </widget>
-     </widget>
-    </item>
-   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -175,14 +66,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>GlyphWidget</class>
-   <extends>QWidget</extends>
-   <header>glyphwidget.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
